@@ -1,4 +1,4 @@
-package net.spotv.smart_alarm;
+package net.spotv.smartalarm;
 
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
@@ -7,7 +7,7 @@ public class ServletInitializer extends SpringBootServletInitializer {
 
 	@Override
 	protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-		return application.sources(LgeSmartAlarmV01Application.class);
+		return application.sources(Application.class);
 	}
 
 }

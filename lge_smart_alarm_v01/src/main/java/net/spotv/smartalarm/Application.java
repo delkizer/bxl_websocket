@@ -1,13 +1,13 @@
-package net.spotv.smart_alarm;
+package net.spotv.smartalarm;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class LgeSmartAlarmV01Application {
+public class Application {
 
 	public static void main(String[] args) {
-		SpringApplication.run(LgeSmartAlarmV01Application.class, args);
+		SpringApplication.run(Application.class, args);
 	}
 
 }
