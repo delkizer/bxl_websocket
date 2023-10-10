@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.spotv.smartalarm.mapper.LgeMetaMapper">
+    <select id="getXmlMeta" resultMap="LgeMetaXmlResult">
+		SELECT B.title AS titlekr
+			, C.name AS descriptionKr
+			, REPLACE( B.img_url, 'src', 'thumb' ) AS imageKr
+			, REPLACE( B.img_url, 'src', 'thumb' ) AS imageStillKo
+			, 'live' AS contentType
+		FROM spotvnow_renewal.game_info A
+		INNER JOIN spotvnow_renewal.lives B ON A.id = B.game_id
+		INNER JOIN spotvnow_renewal.game_league C ON A.game_league_id = C.id
+		WHERE SUBSTR( A.BEGIN_DATE, 1, 10) IN ( DATE(date_add( NOW(), INTERVAL 1 DAY )), DATE( NOW() ) )
+		AND A.type IN ( 1, 2)
+		ORDER BY A.begin_date
+
+    </select>
+    
+	<resultMap id="LgeMetaXmlResult" type="net.spotv.smartalarm.vo.LgeMetaVO">
+	    <result property="titlekr" column="titlekr"/>
+	    <result property="descriptionKr" column="descriptionKr"/>
+	    <result property="imageKr" column="imageKr"/>
+	    <result property="imageStillKo" column="imageStillKo"/>
+	    <result property="contentType" column="contentType"/>
+	</resultMap>    		
+</mapper>
+

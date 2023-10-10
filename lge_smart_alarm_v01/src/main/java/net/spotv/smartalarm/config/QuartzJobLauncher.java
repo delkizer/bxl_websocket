@@ -13,14 +13,19 @@ public class QuartzJobLauncher implements Job {
 
     @Autowired
     private org.springframework.batch.core.Job sampleJob;
+    
+    @Autowired
+    private org.springframework.batch.core.Job lgeMetaJob;    
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         try {
-            jobLauncher.run(sampleJob, new JobParametersBuilder().addLong("uniqueness", System.currentTimeMillis())
-                    .toJobParameters());
+        	//jobLauncher.run(sampleJob, new JobParametersBuilder().addLong("uniqueness", System.currentTimeMillis()).toJobParameters());
+            jobLauncher.run(lgeMetaJob
+            		, new JobParametersBuilder().addLong("uniqueness", System.currentTimeMillis()).toJobParameters());
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 }
