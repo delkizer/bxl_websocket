@@ -20,6 +20,11 @@ import net.spotv.smartalarm.XmlEntity.Channel;
 import net.spotv.smartalarm.XmlEntity.Item;
 import net.spotv.smartalarm.XmlEntity.Rss;
 import net.spotv.smartalarm.XmlEntity.SportsInfo;
+import net.spotv.smartalarm.XmlEntity.SportsInfo.LeagueInfo;
+import net.spotv.smartalarm.XmlEntity.SportsInfo.SportingEvent;
+import net.spotv.smartalarm.XmlEntity.SportsInfo.TeamInfo;
+import net.spotv.smartalarm.XmlEntity.SportsInfo.sportingEvent;
+import net.spotv.smartalarm.XmlEntity.TeamInfos;
 import net.spotv.smartalarm.config.ConfigReader;
 import net.spotv.smartalarm.mapper.LgeMetaMapper;
 import net.spotv.smartalarm.vo.LgeMetaVO;
@@ -92,11 +97,7 @@ public class LgeMetaServiceImpl implements LgeMetaService {
 		        
 		        item.getImages().setImages( Arrays.asList(imageKo, imageStillKo));
 		        
-		        if( lgeMetaVO.getContentType().equals( "live" ) )
-		        	item.setContentType("sporting_event");
-		        else 
-		        	item.setContentType("sporting_vod");
-		        
+	        	item.setContentType( lgeMetaVO.getContentType().toString() );
 		        
 		        Item.Genre genre = new Item.Genre();
 		        genre.setValue("Sport");
@@ -104,8 +105,33 @@ public class LgeMetaServiceImpl implements LgeMetaService {
 		        item.getGenres().setGenres( Arrays.asList( genre ));
 		        
 		        SportsInfo sportsInfo = new SportsInfo();
-		        sportsInfo.setSportId("LGE-BASKETBALL");
-		        sportsInfo.setSportName("basketball");
+		        
+		        sportsInfo.setSportId( lgeMetaVO.getSportId() );
+		        sportsInfo.setSportName( lgeMetaVO.getSportName() );
+		        
+		        LeagueInfo leagueInfo = new LeagueInfo();
+		        leagueInfo.setLeagueId( lgeMetaVO.getLeagueId() );
+		        leagueInfo.setLeagueName(lgeMetaVO.getLeagueName() );
+		        sportsInfo.setLeagueInfo(leagueInfo);
+		        
+		        TeamInfo teamInfoHome = new TeamInfo(); 
+		        teamInfoHome.setTeamId( lgeMetaVO.getTeamTypeIdHome().toString() );
+		        teamInfoHome.setTeamName( lgeMetaVO.getTeamTypeNameHome().toString() );
+		        teamInfoHome.setTeamType("Home");
+		        
+		        TeamInfo teamInfoAway = new TeamInfo();
+		        teamInfoAway.setTeamId( lgeMetaVO.getTeamTypeIdAway().toString() );
+		        teamInfoAway.setTeamName( lgeMetaVO.getTeamTypeNameAway().toString() );
+		        teamInfoAway.setTeamType("AWAY");
+		        
+		        sportsInfo.getTeamInfos().setTeamInfos( Arrays.asList( teamInfoHome, teamInfoAway) );
+		        
+		        
+		        SportingEvent sportingEvent = new SportingEvent();
+		        sportingEvent.setStartTime( lgeMetaVO.getStartTime() );
+		        sportingEvent.setEndTime( lgeMetaVO.getEndTime() );
+		        
+		        sportsInfo.setSportingEvent(sportingEvent);
 		        
 		        
 		        item.setSportsInfo(sportsInfo);

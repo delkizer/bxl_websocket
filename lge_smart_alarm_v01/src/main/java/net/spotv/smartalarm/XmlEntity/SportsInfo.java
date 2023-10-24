@@ -16,8 +16,40 @@ public class SportsInfo {
 
 	@XmlElement(name = "lge:leagueInfo")
 	private LeagueInfo leagueInfo = new LeagueInfo();
+	
+	@XmlElement(name = "lge:teamInfos")
+	private TeamInfos teamInfos = new TeamInfos();	
+	
+	@XmlElement(name = "lge:sportingEvent")
+	private SportingEvent sportingEvent = new SportingEvent();	
 			
 
+	@XmlAccessorType(XmlAccessType.FIELD)
+	public static class SportingEvent {
+		@XmlElement ( name = "lge:startTime")
+		private String startTime;
+		
+		@XmlElement ( name = "lge:endTime")
+		private String endTime;
+		
+    	public String getStartTime() {
+    		return startTime;
+    	}
+
+    	public void setStartTime(String StartTime) {
+    		this.startTime = StartTime;
+    	}
+    	
+    	public String getEndTime() {
+    		return endTime;
+    	}
+
+    	public void setEndTime(String EndTime) {
+    		this.endTime = EndTime;
+    	}    	
+		
+	}
+	
 	@XmlAccessorType(XmlAccessType.FIELD)
 	public static class LeagueInfo {
 		@XmlElement ( name = "lge:leagueId")
@@ -48,11 +80,11 @@ public class SportsInfo {
 		@XmlElement(name = "lge:teamInfo")
 		private List<TeamInfo> teamInfo;
 		
-        public List<TeamInfo> getImages() {
+        public List<TeamInfo> getTeamInfos() {
             return teamInfo;
         }
 
-        public void setImages(List<TeamInfo> teamInfo) {
+        public void setTeamInfos(List<TeamInfo> teamInfo) {
             this.teamInfo = teamInfo;
         }		
 		
@@ -95,15 +127,6 @@ public class SportsInfo {
     	
 	}
 	
-	@XmlAccessorType(XmlAccessType.FIELD)
-	public static class sportingEvent {
-		@XmlElement ( name = "lge:startTime")
-		private String startTime;
-		
-		@XmlElement ( name = "lge:endTime")
-		private String endTime;
-	}
-
 	public String getSportId() {
 		return sportId;
 	}
@@ -127,4 +150,20 @@ public class SportsInfo {
 	public void setLeagueInfo(LeagueInfo leagueInfo) {
 		this.leagueInfo = leagueInfo;
 	}
+
+	public TeamInfos getTeamInfos() {
+		return teamInfos;
+	}
+
+	public void setTeamInfos(TeamInfos teamInfos) {
+		this.teamInfos = teamInfos;
+	}	
+	
+	public SportingEvent getSporringEvent() {
+		return sportingEvent;
+	}
+
+	public void setSportingEvent(SportingEvent sportingEvent) {
+		this.sportingEvent = sportingEvent;
+	}	
 }
