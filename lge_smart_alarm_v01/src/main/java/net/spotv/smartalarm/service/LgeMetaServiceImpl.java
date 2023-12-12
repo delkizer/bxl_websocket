@@ -23,8 +23,6 @@ import net.spotv.smartalarm.XmlEntity.SportsInfo;
 import net.spotv.smartalarm.XmlEntity.SportsInfo.LeagueInfo;
 import net.spotv.smartalarm.XmlEntity.SportsInfo.SportingEvent;
 import net.spotv.smartalarm.XmlEntity.SportsInfo.TeamInfo;
-import net.spotv.smartalarm.XmlEntity.SportsInfo.sportingEvent;
-import net.spotv.smartalarm.XmlEntity.TeamInfos;
 import net.spotv.smartalarm.config.ConfigReader;
 import net.spotv.smartalarm.mapper.LgeMetaMapper;
 import net.spotv.smartalarm.vo.LgeMetaVO;
@@ -89,13 +87,13 @@ public class LgeMetaServiceImpl implements LgeMetaService {
 		        imageKo.setWidth( "282" );
 		        imageKo.setValue( lgeMetaVO.getImageKr() + "=W" + "282" );		        
 		        
-		        Item.Image imageStillKo = new Item.Image();
-		        imageStillKo.setLocale("ko-KR");
-		        imageStillKo.setType( "stillcut" );
-		        imageStillKo.setWidth( "414" );		        
-		        imageStillKo.setValue( lgeMetaVO.getImageKr() + "=W" + "414" );
+		        //Item.Image imageStillKo = new Item.Image();
+		        //imageStillKo.setLocale("ko-KR");
+		        //imageStillKo.setType( "stillcut" );
+		        //imageStillKo.setWidth( "414" );		        
+		        //imageStillKo.setValue( lgeMetaVO.getImageKr() + "=W" + "414" );
 		        
-		        item.getImages().setImages( Arrays.asList(imageKo, imageStillKo));
+		        item.getImages().setImages( Arrays.asList(imageKo));
 		        
 	        	item.setContentType( lgeMetaVO.getContentType().toString() );
 		        
