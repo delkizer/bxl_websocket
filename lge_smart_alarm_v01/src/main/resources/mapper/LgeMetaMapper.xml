@@ -24,11 +24,11 @@
 		, ROUND(UNIX_TIMESTAMP( B.begin_date )) AS startTime
 		, ROUND(UNIX_TIMESTAMP( B.begin_date )) + 18000 AS endTime
 		FROM spotvnow_renewal.lives A
-		LEFT JOIN spotvnow_renewal.es_game_info B ON A.game_id = B.id
-		LEFT JOIN spotvnow_renewal.lge_smart_alarm_game_league C ON B.game_league_id = C.game_league_id
-		LEFT JOIN spotvnow_renewal.lge_smart_alarm_game_type D ON B.game_type_id = D.game_type_id
-		LEFT JOIN ( SELECT * FROM spotvnow_renewal.lge_smart_alarm_tname_match WHERE game_entry_id <> 1 OR id = 101  ) E ON B.game_entry_home = E.game_entry_id 
-		LEFT JOIN ( SELECT * FROM spotvnow_renewal.lge_smart_alarm_tname_match WHERE game_entry_id <> 1 OR id = 101 ) F ON B.game_entry_away = F.game_entry_id		
+		INNER JOIN spotvnow_renewal.es_game_info B ON A.game_id = B.id
+		INNER JOIN spotvnow_renewal.lge_smart_alarm_game_league C ON B.game_league_id = C.game_league_id
+		INNER JOIN spotvnow_renewal.lge_smart_alarm_game_type D ON B.game_type_id = D.game_type_id
+		INNER JOIN ( SELECT * FROM spotvnow_renewal.lge_smart_alarm_tname_match WHERE game_entry_id <> 1 OR id = 101  ) E ON B.game_entry_home = E.game_entry_id 
+		INNER JOIN ( SELECT * FROM spotvnow_renewal.lge_smart_alarm_tname_match WHERE game_entry_id <> 1 OR id = 101 ) F ON B.game_entry_away = F.game_entry_id		
 		WHERE SUBSTR( B.BEGIN_DATE, 1, 10) IN ( DATE(date_add( NOW(), INTERVAL 1 DAY )), DATE( NOW() ) )
 		  AND B.type IN ( 1, 2 ) 
 	]]> 
