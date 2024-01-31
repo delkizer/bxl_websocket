@@ -84,14 +84,8 @@ public class LgeMetaServiceImpl implements LgeMetaService {
 		        Item.Image imageKo = new Item.Image();
 		        imageKo.setLocale("ko-KR");
 		        imageKo.setType( "poster" );
-		        imageKo.setWidth( "282" );
-		        imageKo.setValue( lgeMetaVO.getImageKr() + "=W" + "282" );		        
-		        
-		        //Item.Image imageStillKo = new Item.Image();
-		        //imageStillKo.setLocale("ko-KR");
-		        //imageStillKo.setType( "stillcut" );
-		        //imageStillKo.setWidth( "414" );		        
-		        //imageStillKo.setValue( lgeMetaVO.getImageKr() + "=W" + "414" );
+		        imageKo.setWidth( lgeMetaVO.getImageKrSize() );
+		        imageKo.setValue( lgeMetaVO.getImageKr() );
 		        
 		        item.getImages().setImages( Arrays.asList(imageKo));
 		        

@@ -11,7 +11,7 @@
 	<groupId>net.spotv</groupId>
 	<artifactId>lge_smart_alarm_v01</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>war</packaging>
+	<packaging>jar</packaging>
 	<name>lge_smart_alarm_v01</name>
 	<description>spotv_meta_send_to_lge</description>
 	<properties>

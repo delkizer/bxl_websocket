@@ -4,7 +4,7 @@ public class LgeMetaVO {
 	String titlekr;
 	String descriptionKr;
 	String imageKr;	
-	String imageStillKo;
+	String imageKrSize;
 	String contentType;
 	String sportId;
 	String sportName;
@@ -41,13 +41,13 @@ public class LgeMetaVO {
 	public void setImageKr(String imageKr) {
 		this.imageKr = imageKr;
 	}
-
-	public String getImageStillKo() {
-		return imageStillKo;
+	
+	public String getImageKrSize() {
+		return imageKrSize;
 	}
 
-	public void setImageStillKo(String imageStillKo) {
-		this.imageStillKo = imageStillKo;
+	public void setImageKrSize(String imageKrSize) {
+		this.imageKrSize = imageKrSize;
 	}
 
 	public String getContentType() {

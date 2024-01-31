@@ -3,34 +3,42 @@
 <mapper namespace="net.spotv.smartalarm.mapper.LgeMetaMapper">
     <select id="getXmlMeta" resultMap="LgeMetaXmlResult">
 	<![CDATA[ 
-		SELECT A.title AS titlekr
-		, B.league_name AS descriptionKr
-		, REPLACE( B.league_logo, 'src', 'thumb' ) AS imageKr
-		, REPLACE( B.league_logo, 'src', 'thumb' ) AS imageStillKo
-		, CASE WHEN A.`status` = '1' THEN 'sporting_event' 
-		       ELSE 'sproting_vod'	END AS contentType
-		, CASE WHEN D.lge_sport_id <> '' THEN D.lge_sport_id
-		       ELSE '' END AS sportId
-		, CASE WHEN D.lge_sport_name <> '' THEN D.lge_sport_name
-		       ELSE '' END AS sportName              
-		, CASE WHEN C.lge_league_id <> '' THEN C.lge_league_id  
-		       ELSE '' END AS leagueId
-		, CASE WHEN C.lge_league_name <> '' THEN C.lge_league_name 
-		       ELSE '' END AS leagueName
-		, IFNULL(E.lge_team_id, '' ) AS teamTypeIdHome		       
-		, IFNULL(E.lge_team_name, '' ) AS teamTypeNameHome
-		, IFNULL(F.lge_team_id, '' ) AS teamTypeIdAway
-		, IFNULL(F.lge_team_name, '' ) AS teamTypeNameAway
-		, ROUND(UNIX_TIMESTAMP( B.begin_date )) AS startTime
-		, ROUND(UNIX_TIMESTAMP( B.begin_date )) + 18000 AS endTime
-		FROM spotvnow_renewal.lives A
-		INNER JOIN spotvnow_renewal.es_game_info B ON A.game_id = B.id
-		INNER JOIN spotvnow_renewal.lge_smart_alarm_game_league C ON B.game_league_id = C.game_league_id
-		INNER JOIN spotvnow_renewal.lge_smart_alarm_game_type D ON B.game_type_id = D.game_type_id
-		INNER JOIN ( SELECT * FROM spotvnow_renewal.lge_smart_alarm_tname_match WHERE game_entry_id <> 1 OR id = 101  ) E ON B.game_entry_home = E.game_entry_id 
-		INNER JOIN ( SELECT * FROM spotvnow_renewal.lge_smart_alarm_tname_match WHERE game_entry_id <> 1 OR id = 101 ) F ON B.game_entry_away = F.game_entry_id		
-		WHERE SUBSTR( B.BEGIN_DATE, 1, 10) IN ( DATE(date_add( NOW(), INTERVAL 1 DAY )), DATE( NOW() ) )
-		  AND B.type IN ( 1, 2 ) 
+		SELECT game_info.titlekr
+--			, game_info.game_league_id AS leagueId
+--			, game_info.game_entry_home
+--			, game_info.game_entry_away
+--			, game_info.begin_date
+			, game_info.contentType
+		    , game_info.imageKr
+		    , game_info.imageKrSize
+			, CASE WHEN D.lge_sport_id <> '' THEN D.lge_sport_id
+				   ELSE '' END AS sportId
+			, CASE WHEN D.lge_sport_name <> '' THEN D.lge_sport_name
+				   ELSE '' END AS sportName              
+			, CASE WHEN C.lge_league_id <> '' THEN C.lge_league_id  
+				   ELSE '' END AS leagueId
+			, CASE WHEN C.lge_league_name <> '' THEN C.lge_league_name 
+				   ELSE '' END AS leagueName
+			, IFNULL(E.lge_team_id, '' ) AS teamTypeIdHome		       
+			, IFNULL(E.lge_team_name, '' ) AS teamTypeNameHome
+			, IFNULL(F.lge_team_id, '' ) AS teamTypeIdAway
+			, IFNULL(F.lge_team_name, '' ) AS teamTypeNameAway
+			, ROUND(UNIX_TIMESTAMP( game_info.begin_date )) AS startTime
+			, ROUND(UNIX_TIMESTAMP( game_info.begin_date )) + 18000 AS endTime
+		FROM ( SELECT A.title AS titlekr, A.img_url AS imageKr, '1280' AS imageKrSize, B.game_league_id, B.game_type_id, B.game_entry_home, B.game_entry_away, B.begin_date, 'sporting_event'  AS contentType
+				FROM spotvnow_renewal.lives A
+				INNER JOIN spotvnow_renewal.game_info B ON A.game_id = B.id
+				WHERE A.status IN ( 0, 1 ) 
+				  AND SUBSTR( B.BEGIN_DATE, 1, 10) IN ( DATE(date_add( NOW(), INTERVAL 1 DAY )), DATE( NOW() ), DATE(date_add( NOW(), INTERVAL 2 DAY )), DATE( NOW() )  ) 
+			  UNION ALL
+			  SELECT A.title AS titlekr, A.img_url AS imageKr, '1920' AS imageKrSize, B.game_league_id, B.game_type_id, B.game_entry_home, B.game_entry_away, B.begin_date, 'sproting_vod'  AS contentType
+				FROM spotvnow_renewal.videos A
+				INNER JOIN spotvnow_renewal.game_info B ON A.game_info_id = B.id
+				where SUBSTR( B.BEGIN_DATE, 1, 10) IN ( DATE(date_add( NOW(), INTERVAL 1 DAY )), DATE(date_add( NOW(), INTERVAL -1 DAY )) ) and A.type = 1 ) game_info
+		INNER JOIN spotvnow_renewal.lge_smart_alarm_game_league C ON game_info.game_league_id = C.game_league_id
+		INNER JOIN spotvnow_renewal.lge_smart_alarm_game_type D ON game_info.game_type_id = D.game_type_id
+		INNER JOIN ( SELECT * FROM spotvnow_renewal.lge_smart_alarm_tname_match WHERE game_entry_id <> 1 OR id = 101  ) E ON game_info.game_entry_home = E.game_entry_id 
+		INNER JOIN ( SELECT * FROM spotvnow_renewal.lge_smart_alarm_tname_match WHERE game_entry_id <> 1 OR id = 101 ) F ON game_info.game_entry_away = F.game_entry_id		 
 	]]> 
     </select>
     
@@ -38,7 +46,7 @@
 	    <result property="titlekr" column="titlekr"/>
 	    <result property="descriptionKr" column="descriptionKr"/>
 	    <result property="imageKr" column="imageKr"/>
-	    <result property="imageStillKo" column="imageStillKo"/>
+	    <result property="imageKrSize" column="imageKrSize"/>
 	    <result property="contentType" column="contentType"/>
 	    <result property="sportId" column="sportId"/>
 	    <result property="sportName" column="sportName"/>
