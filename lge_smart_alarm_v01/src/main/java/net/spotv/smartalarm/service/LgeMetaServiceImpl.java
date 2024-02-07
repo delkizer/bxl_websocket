@@ -85,6 +85,7 @@ public class LgeMetaServiceImpl implements LgeMetaService {
 		        imageKo.setLocale("ko-KR");
 		        imageKo.setType( "poster" );
 		        imageKo.setWidth( lgeMetaVO.getImageKrSize() );
+		        imageKo.setHeight( lgeMetaVO.getImageKrHeight() );
 		        imageKo.setValue( lgeMetaVO.getImageKr() );
 		        
 		        item.getImages().setImages( Arrays.asList(imageKo));

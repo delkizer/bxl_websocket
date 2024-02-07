@@ -81,6 +81,9 @@ public class Item {
         
         @XmlAttribute
         private String width;
+
+        @XmlAttribute
+        private String height;
         
         @XmlValue
         private String value;
@@ -115,6 +118,14 @@ public class Item {
 
     	public void setWidth(String width) {
     		this.width = width;
+    	}    	
+    	
+    	public String getHeight() {
+    		return height;
+    	}
+
+    	public void setHeight(String height) {
+    		this.height = height;
     	}    	
     	
     }	

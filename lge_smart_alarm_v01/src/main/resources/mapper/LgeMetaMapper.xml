@@ -11,6 +11,7 @@
 			, game_info.contentType
 		    , game_info.imageKr
 		    , game_info.imageKrSize
+		    , game_info.imageKrHeight
 			, CASE WHEN D.lge_sport_id <> '' THEN D.lge_sport_id
 				   ELSE '' END AS sportId
 			, CASE WHEN D.lge_sport_name <> '' THEN D.lge_sport_name
@@ -25,13 +26,13 @@
 			, IFNULL(F.lge_team_name, '' ) AS teamTypeNameAway
 			, ROUND(UNIX_TIMESTAMP( game_info.begin_date )) AS startTime
 			, ROUND(UNIX_TIMESTAMP( game_info.begin_date )) + 18000 AS endTime
-		FROM ( SELECT A.title AS titlekr, A.img_url AS imageKr, '1280' AS imageKrSize, B.game_league_id, B.game_type_id, B.game_entry_home, B.game_entry_away, B.begin_date, 'sporting_event'  AS contentType
+		FROM ( SELECT A.title AS titlekr, A.img_url AS imageKr, '1280' AS imageKrSize, '720' AS imageKrHeight, B.game_league_id, B.game_type_id, B.game_entry_home, B.game_entry_away, B.begin_date, 'sporting_event'  AS contentType
 				FROM spotvnow_renewal.lives A
 				INNER JOIN spotvnow_renewal.game_info B ON A.game_id = B.id
 				WHERE A.status IN ( 0, 1 ) 
 				  AND SUBSTR( B.BEGIN_DATE, 1, 10) IN ( DATE(date_add( NOW(), INTERVAL 1 DAY )), DATE( NOW() ), DATE(date_add( NOW(), INTERVAL 2 DAY )), DATE( NOW() )  ) 
 			  UNION ALL
-			  SELECT A.title AS titlekr, A.img_url AS imageKr, '1920' AS imageKrSize, B.game_league_id, B.game_type_id, B.game_entry_home, B.game_entry_away, B.begin_date, 'sproting_vod'  AS contentType
+			  SELECT A.title AS titlekr, A.img_url AS imageKr, '1920' AS imageKrSize, '1080' AS imageKrHeight, B.game_league_id, B.game_type_id, B.game_entry_home, B.game_entry_away, B.begin_date, 'sproting_vod'  AS contentType
 				FROM spotvnow_renewal.videos A
 				INNER JOIN spotvnow_renewal.game_info B ON A.game_info_id = B.id
 				where SUBSTR( B.BEGIN_DATE, 1, 10) IN ( DATE(date_add( NOW(), INTERVAL 1 DAY )), DATE(date_add( NOW(), INTERVAL -1 DAY )) ) and A.type = 1 ) game_info
@@ -47,6 +48,7 @@
 	    <result property="descriptionKr" column="descriptionKr"/>
 	    <result property="imageKr" column="imageKr"/>
 	    <result property="imageKrSize" column="imageKrSize"/>
+	    <result property="imageKrHeight" column="imageKrHeight"/>
 	    <result property="contentType" column="contentType"/>
 	    <result property="sportId" column="sportId"/>
 	    <result property="sportName" column="sportName"/>
