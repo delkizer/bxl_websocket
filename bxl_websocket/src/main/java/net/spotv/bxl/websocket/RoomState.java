@@ -1,23 +1,38 @@
 package net.spotv.bxl.websocket;
 
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 public class RoomState {
+    private final String roomKey;
+    private final BxlWebsocketApplication owner;
     private final Sinks.Many<String> sink;
     public final Flux<String> broadcastFlux;
+    private final ConcurrentLinkedQueue<String> sessionIds = new ConcurrentLinkedQueue<>();
 
-    private final ConcurrentLinkedQueue<String> sessionIds;
-
-    public RoomState() {
-        // 1) Sinks.many().multicast() 등의 방식으로 broadcast sink 생성
-        this.sink = Sinks.many().multicast().directBestEffort();
-        // 2) sink를 Flux로 노출, 구독하는 쪽(session.send)에서 이 Flux를 활용
-        this.broadcastFlux = sink.asFlux();
-        // 3) 세션ID 보관 (참고용)
-        this.sessionIds = new ConcurrentLinkedQueue<>();
+    // 시계 상태
+    private Map<String, Integer> clockState = new HashMap<>();
+    
+    public RoomState( String roomKey, BxlWebsocketApplication owner ) {
+    	this.roomKey = roomKey;
+    	this.owner = owner;
+    	
+    	this.sink = Sinks.many().multicast().directBestEffort();
+    	this.broadcastFlux = sink.asFlux();
+        
+        //기본값 
+        clockState.put("warmup", 120);
+        clockState.put("match", 600);
+        clockState.put("break", 60);        
     }
     
     /**
@@ -25,7 +40,16 @@ public class RoomState {
      */
     public void onJoin(String sessionId) {
         sessionIds.add(sessionId);
-        // 필요하다면 기존 상태 정보 send
+        
+        sink.tryEmitNext("JOIN: session " + sessionId + " => " + getStateJson());
+    }
+    
+    public String getStateJson() {
+        try {
+            return new ObjectMapper().writeValueAsString(clockState);
+        } catch (Exception e) {
+            return "{\"error\":\"json\"}";
+        }    	
     }
 
     /**
@@ -33,6 +57,10 @@ public class RoomState {
      */
     public void onLeave(String sessionId) {
         sessionIds.remove(sessionId);
+        
+        if( sessionIds.isEmpty() ) {
+        	scheduleRoomDeletion();
+        }
     }
 
     /**
@@ -42,9 +70,24 @@ public class RoomState {
      * @param payload    메시지 내용(JSON 등)
      */
     public void handleIncomingMessage(String sessionId, String payload) {
-        // 예: 간단히 broadcast
-        // 실제로는 JSON 파싱 등 비즈니스 로직 가능
         sink.tryEmitNext("Echo from server: " + payload);
     }
+    
+    private void scheduleRoomDeletion() {
+    	Mono.delay( Duration.ofMinutes(5))
+    	.subscribe(_unused -> {
+    		if ( sessionIds.isEmpty() ) {
+                // roomMap에서 제거
+                // 이때 roomMap을 참조하기 위해선, 소유 객체(예: BxlWebsocketApplication)에서 메서드 호출 허용 필요
+                // 혹은 RoomState에 callback을 주입    			
+                owner.removeRoom(roomKey);
+    		}
+    	});
+    }
+    
+    public void removeRoom(String roomKey) {
+        roomMap.remove(roomKey);
+        System.out.println("Room removed: " + roomKey);
+    }    
     
 }

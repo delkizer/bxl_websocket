@@ -51,16 +51,27 @@ public class BxlWebsocketApplication {
     		String tieNo =  (parts.length > 3) ? parts[3] : null;
     		
     		String roomKey = gameDate + "-" + tieNo;
-            RoomState room = roomMap.computeIfAbsent(roomKey, key -> new RoomState());
             
+            // get room
+    		RoomState room = roomMap.computeIfAbsent(roomKey, key -> new RoomState(roomKey, this)); 
+
+            // onJoin
+            String sessionId = session.getId();
+            room.onJoin(sessionId);
+            
+            // broadcast -> this room
             Mono<Void> output = session.send(
                     room.broadcastFlux.map(session::textMessage)
                 );
             
+            //client -> server 
             Mono<Void> input = session.receive()
                     .doOnNext(msg -> {
                         String payload = msg.getPayloadAsText();
                         room.handleIncomingMessage(session.getId(), payload);
+                    })
+                    .doFinally(signal -> {
+                    	room.onLeave(sessionId);
                     })
                     .then();
 
@@ -87,6 +98,11 @@ public class BxlWebsocketApplication {
         			}
         		})
         ).and(session.receive().then());
+    }
+    
+    public void removeRoom(String roomKey) {
+        roomMap.remove(roomKey);
+        System.out.println("Room removed: " + roomKey);
     }
 
 }
