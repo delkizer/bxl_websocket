@@ -30,8 +30,9 @@ public class RoomState {
 		MODIFY
 	}
 	
-	public enum AddType { 
-		PLUS,
+	public enum ModifyType { 
+		modify_time,
+		game_status,
 	}
 	
     private final String roomKey;
@@ -44,6 +45,9 @@ public class RoomState {
     private final ScheduledExecutorService broadcastScheduler;
     
     private volatile int warmUp = 120;
+    private volatile int matchTime = 600;
+    private volatile int breakTime = 60;    
+    private volatile GameStatus  gameStatus = GameStatus.SCHEDULED; 
     private volatile boolean paused = false;
 
     public RoomState( String roomKey, BxlWebsocketApplication owner ) {
@@ -64,8 +68,47 @@ public class RoomState {
     private void startDecrementTask() {
         // 1초마다 warmUp-- (if not paused)
         decrementScheduler.scheduleAtFixedRate(() -> {
-            if (!paused && warmUp > 0) {
-                warmUp--;
+            if (!paused) {
+                switch (gameStatus) {
+                    case WARMUP:
+                        if (warmUp > 0) {
+                            warmUp--;
+                        } else {
+                            // warmUp이 0이 되면 RUNNING으로 전환
+                            gameStatus = GameStatus.RUNNING;
+                        }
+                        break;
+
+                    case RUNNING:
+                        if (matchTime > 0) {
+                            matchTime--;
+                        } else {
+                            // match 0 => FINISHED
+                            gameStatus = GameStatus.FINISHED;
+                        }
+                        break;
+
+                    case FINISHED:
+                        if (breakTime > 0) {
+                            breakTime--;
+                        } else {
+                            // break 0 => 다시 SCHEDULED
+                            gameStatus = GameStatus.SCHEDULED;
+                            // warmUp, match, break 초기화
+                            warmUp = 120;
+                            matchTime = 600;
+                            breakTime = 60;
+                        }
+                        break;
+
+                    case SCHEDULED:
+                        // SCHEDULED는 클라이언트가 game_status를 WARMUP으로 바꿔야 시작
+                        break;
+
+                    case CANCELED:
+                        // 필요 시 다른 로직
+                        break;
+                }
             }
         }, 0, 1, TimeUnit.SECONDS);
     }
@@ -90,10 +133,10 @@ public class RoomState {
     
     public String getStateJson() {
         Map<String, Object> result = new HashMap<>();
-        result.put("game_state", GameStatus.SCHEDULED);
-        result.put("warmup", warmUp);
-        result.put("match", 600);
-        result.put("break", 60);
+        result.put("game_state", this.gameStatus);
+        result.put("warmup", this.warmUp);
+        result.put("match", this.matchTime);
+        result.put("break", this.breakTime);
         
         String[] parts = this.roomKey.split("-");        
         String tieNo = parts[parts.length - 1];
@@ -112,7 +155,6 @@ public class RoomState {
     }
     
     //warm up 변경 
-    public void addWarmUpTime(int amount) { this.warmUp += amount; }
     public void pauseWarmUp() { this.paused = true; }
     public void resumeWarmUp() { this.paused = false; }
     // onClose
@@ -142,27 +184,46 @@ public class RoomState {
         try {
             ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> msg = mapper.readValue(payload, Map.class);
-
-            String packetType = (String) msg.get("packet_type");
-            String modifyType = (String) msg.get("modify_type");
+            String packetTypeStr = (String) msg.get("packet_type");
+            PacketType packetType = PacketType.valueOf(packetTypeStr);
+            
+            String modifyTypeStr = (String) msg.get("modify_type");
+            ModifyType modifyType = ModifyType.valueOf(modifyTypeStr);
+            
             Map<String, Object> data = (Map<String, Object>) msg.get("data");
 
-            //패킷 탈입에 의한 분기 
-            if ( PacketType.MODIFY.equals(packetType)) {
-                if ("time".equals(modifyType)) {
-                    handleTimeUpdate(data);
-                }
+            //패킷 티입에 의한 분기 
+            switch( packetType) {
+            	case MODIFY:
+                    switch (modifyType) {
+                    case modify_time:
+                        handleTimeUpdate(data);
+                        break;
+                    case game_status:
+                        handleGameStatusUpdate(data);
+                        break;
+                    }
+            		break;
+            	default:
+            		break;
             }
-
         } catch (Exception e) {
             e.printStackTrace();
             sink.tryEmitNext("Error: " + e.getMessage());
         }
     }
     
+    private void handleGameStatusUpdate(Map<String, Object> data ) { 
+    	String gameStatus = (String) data.get("game_status");
+    	
+    	if ( "WARMUP".equals(gameStatus)) {
+    		this.gameStatus = GameStatus.WARMUP;
+    	}
+    }
+    
     private void handleTimeUpdate(Map<String, Object> msg) {
         // "game_type":"warm-up", "modify_sec": 3, "add_type": "plus"
-        String gameType = (String) msg.get("game_type");
+        String gameType = (String) msg.get("time_type");
         Integer modifySec = (Integer) msg.get("modify_sec");
         String addType = (String) msg.get("add_type");
 
@@ -173,12 +234,6 @@ public class RoomState {
         if ("warm-up".equals(gameType)) {
             this.warmUp += delta;  // RoomState 예시
         } 
-        else if ("match".equals(gameType)) {
-            // matchTime += delta;
-        }
-        else if ("break".equals(gameType)) {
-            // breakTime += delta;
-        }
 
         // 3) 그 후 즉시 방 전체 브로드캐스트
         sink.tryEmitNext(getStateJson());
