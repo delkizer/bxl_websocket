@@ -4,6 +4,11 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,27 +18,66 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 public class RoomState {
+	public enum GameStatus {
+	    SCHEDULED,
+	    WARMUP,
+	    RUNNING,
+	    FINISHED,
+	    CANCELED;
+	}
+	
+	public enum PacketType { 
+		MODIFY
+	}
+	
+	public enum AddType { 
+		PLUS,
+	}
+	
     private final String roomKey;
     private final BxlWebsocketApplication owner;
     private final Sinks.Many<String> sink;
     public final Flux<String> broadcastFlux;
     private final ConcurrentLinkedQueue<String> sessionIds = new ConcurrentLinkedQueue<>();
-
-    // 시계 상태
-    private Map<String, Integer> clockState = new HashMap<>();
     
+    private final ScheduledExecutorService decrementScheduler;
+    private final ScheduledExecutorService broadcastScheduler;
+    
+    private volatile int warmUp = 120;
+    private volatile boolean paused = false;
+
     public RoomState( String roomKey, BxlWebsocketApplication owner ) {
     	this.roomKey = roomKey;
     	this.owner = owner;
     	
     	this.sink = Sinks.many().multicast().directBestEffort();
     	this.broadcastFlux = sink.asFlux();
-        
-        //기본값 
-        clockState.put("warmup", 120);
-        clockState.put("match", 600);
-        clockState.put("break", 60);        
+    
+    	this.decrementScheduler = Executors.newSingleThreadScheduledExecutor();
+    	this.broadcastScheduler = Executors.newSingleThreadScheduledExecutor();
+    	
+        startDecrementTask();   // 1초 주기
+        startBroadcastTask();   // 0.1초 주기
+    	
     }
+    
+    private void startDecrementTask() {
+        // 1초마다 warmUp-- (if not paused)
+        decrementScheduler.scheduleAtFixedRate(() -> {
+            if (!paused && warmUp > 0) {
+                warmUp--;
+            }
+        }, 0, 1, TimeUnit.SECONDS);
+    }
+    
+    private void startBroadcastTask() {
+        // 0.1초마다 broadcast
+        broadcastScheduler.scheduleAtFixedRate(() -> {
+            String json = getStateJson();
+            sink.tryEmitNext(json);
+        }, 0, 100, TimeUnit.MILLISECONDS);
+    }    
+    
     
     /**
      * 클라이언트 세션이 새로 join할 때 호출할 수도 있음.
@@ -45,12 +89,37 @@ public class RoomState {
     }
     
     public String getStateJson() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("game_state", GameStatus.SCHEDULED);
+        result.put("warmup", warmUp);
+        result.put("match", 600);
+        result.put("break", 60);
+        
+        String[] parts = this.roomKey.split("-");        
+        String tieNo = parts[parts.length - 1];
+        String[] dateParts = new String[parts.length - 1];
+        System.arraycopy(parts, 0, dateParts, 0, parts.length - 1);
+        String gameDate = String.join("-", dateParts);
+        
+        result.put("gameDate", gameDate);
+        result.put("tieNo", tieNo);
+    	
         try {
-            return new ObjectMapper().writeValueAsString(clockState);
+            return new ObjectMapper().writeValueAsString(result);
         } catch (Exception e) {
             return "{\"error\":\"json\"}";
         }    	
     }
+    
+    //warm up 변경 
+    public void addWarmUpTime(int amount) { this.warmUp += amount; }
+    public void pauseWarmUp() { this.paused = true; }
+    public void resumeWarmUp() { this.paused = false; }
+    // onClose
+    public void stopAll() {
+        decrementScheduler.shutdown();
+        broadcastScheduler.shutdown();
+    }    
 
     /**
      * 클라이언트가 떠났을 때
@@ -70,9 +139,51 @@ public class RoomState {
      * @param payload    메시지 내용(JSON 등)
      */
     public void handleIncomingMessage(String sessionId, String payload) {
-        sink.tryEmitNext("Echo from server: " + payload);
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> msg = mapper.readValue(payload, Map.class);
+
+            String packetType = (String) msg.get("packet_type");
+            String modifyType = (String) msg.get("modify_type");
+            Map<String, Object> data = (Map<String, Object>) msg.get("data");
+
+            //패킷 탈입에 의한 분기 
+            if ( PacketType.MODIFY.equals(packetType)) {
+                if ("time".equals(modifyType)) {
+                    handleTimeUpdate(data);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            sink.tryEmitNext("Error: " + e.getMessage());
+        }
     }
     
+    private void handleTimeUpdate(Map<String, Object> msg) {
+        // "game_type":"warm-up", "modify_sec": 3, "add_type": "plus"
+        String gameType = (String) msg.get("game_type");
+        Integer modifySec = (Integer) msg.get("modify_sec");
+        String addType = (String) msg.get("add_type");
+
+        // 1) plus/minus 판단
+        int delta = ("plus".equals(addType)) ? modifySec : -modifySec;
+
+        // 2) gameType에 따라 수정 (warm-up, match, break 등)
+        if ("warm-up".equals(gameType)) {
+            this.warmUp += delta;  // RoomState 예시
+        } 
+        else if ("match".equals(gameType)) {
+            // matchTime += delta;
+        }
+        else if ("break".equals(gameType)) {
+            // breakTime += delta;
+        }
+
+        // 3) 그 후 즉시 방 전체 브로드캐스트
+        sink.tryEmitNext(getStateJson());
+    }
+        
     private void scheduleRoomDeletion() {
     	Mono.delay( Duration.ofMinutes(5))
     	.subscribe(_unused -> {
@@ -84,10 +195,5 @@ public class RoomState {
     		}
     	});
     }
-    
-    public void removeRoom(String roomKey) {
-        roomMap.remove(roomKey);
-        System.out.println("Room removed: " + roomKey);
-    }    
     
 }

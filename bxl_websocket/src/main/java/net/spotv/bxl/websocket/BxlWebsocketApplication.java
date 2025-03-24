@@ -20,15 +20,14 @@ import reactor.core.publisher.Mono;
 
 @SpringBootApplication
 public class BxlWebsocketApplication {
-    private final HandlerMapping websocketMapping;
     private final ConcurrentHashMap<String, RoomState> roomMap = new ConcurrentHashMap<>();
-
-    BxlWebsocketApplication(HandlerMapping websocketMapping) {
-        this.websocketMapping = websocketMapping;
-    }
 
 	public static void main(String[] args) {
 		SpringApplication.run(BxlWebsocketApplication.class, args);
+	}
+	
+	public BxlWebsocketApplication() {
+		
 	}
 	
     @Bean
