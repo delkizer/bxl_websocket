@@ -35,6 +35,10 @@ public class RoomState {
 		game_status,
 	}
 	
+	private final int default_warmup = 120;
+	private final int default_matchup = 600;
+	private final int default_break = 60;
+	
     private final String roomKey;
     private final BxlWebsocketApplication owner;
     private final Sinks.Many<String> sink;
@@ -44,9 +48,9 @@ public class RoomState {
     private final ScheduledExecutorService decrementScheduler;
     private final ScheduledExecutorService broadcastScheduler;
     
-    private volatile int warmUp = 120;
-    private volatile int matchTime = 600;
-    private volatile int breakTime = 60;    
+    private volatile int warmUp = this.default_warmup;
+    private volatile int matchTime = this.default_matchup;
+    private volatile int breakTime = this.default_break;    
     private volatile GameStatus  gameStatus = GameStatus.SCHEDULED; 
     private volatile boolean paused = false;
 
@@ -95,8 +99,8 @@ public class RoomState {
                             // break 0 => 다시 SCHEDULED
                             gameStatus = GameStatus.SCHEDULED;
                             // warmUp, match, break 초기화
-                            warmUp = 120;
-                            matchTime = 600;
+                            warmUp = 60;
+                            matchTime = 60;
                             breakTime = 60;
                         }
                         break;
@@ -219,6 +223,13 @@ public class RoomState {
     	if ( "WARMUP".equals(gameStatus)) {
     		this.gameStatus = GameStatus.WARMUP;
     	}
+
+    	if ( "SCHEDULED".equals(gameStatus)) {
+    		this.gameStatus = GameStatus.SCHEDULED;
+    		this.warmUp = this.default_warmup;
+    		this.matchTime = this.default_matchup;
+    		this.breakTime = this.default_break;
+    	}
     }
     
     private void handleTimeUpdate(Map<String, Object> msg) {
@@ -232,9 +243,22 @@ public class RoomState {
 
         // 2) gameType에 따라 수정 (warm-up, match, break 등)
         if ("warm-up".equals(gameType)) {
-            this.warmUp += delta;  // RoomState 예시
-        } 
 
+            // 2.1) 오직 SCHEDULED 또는 WARMUP 상태에서만 warmUp 시간 변경 허용
+            if (this.gameStatus != GameStatus.SCHEDULED && this.gameStatus != GameStatus.WARMUP) {
+                sink.tryEmitNext("Cannot modify warm-up time in state: " + this.gameStatus);
+                return;
+            }
+
+            // 2.2) warmUp 변경
+            this.warmUp += delta;
+
+            // 2.3) warmUp이 0 이하로 내려가지 않도록 보정
+            if (this.warmUp < 0) {
+                this.warmUp = 0;
+            }
+        }
+        
         // 3) 그 후 즉시 방 전체 브로드캐스트
         sink.tryEmitNext(getStateJson());
     }
